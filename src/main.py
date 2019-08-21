@@ -9,6 +9,8 @@ host_lists = [("host1", "192.168.1.1", 22, "root", "~/.ssh/key1"),
 
 class MainWindow(Gtk.Window):
 
+    selected_host = "none"
+
     def __init__(self):
         Gtk.Window.__init__(self, title="RemoteHelper")
         self.set_border_width(10)
@@ -69,6 +71,9 @@ class MainWindow(Gtk.Window):
         scrollable_treelist.set_vexpand(True)
         scrollable_treelist.add(self.treeview)
 
+        select = self.treeview.get_selection()
+        select.connect("changed", self.on_tree_selection_changed)
+
         vbox.pack_start(scrollable_treelist, True, True, 0)
 
         listbox.add(row)
@@ -81,20 +86,19 @@ class MainWindow(Gtk.Window):
             return True
         else:
             return model[iter][0] == self.current_filter_host
-
-    def on_selection_button_clicked(self, widget):
-        """Called on any of the button clicks"""
-        #we set the current language filter to the button's label
-        self.current_filter_host = widget.get_label()
-        print("%s host selected!" % self.current_filter_host)
-        #we update the filter, which updates in turn the view
-        self.host_filter.refilter()
-
+          
     def on_buttonSSH_clicked(self, widget):
       os.system("/usr/bin/gnome-terminal -- ssh -p 22 -i ~/.ssh/key user@192.168.1.1")
 
     def on_buttonSFTP_clicked(self, widget):
-      print(self.treeview.get_selection().get_selected_rows()[0][0][0])
+      print(self.selected_host)
+
+    # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html
+    def on_tree_selection_changed(self, selection):
+      model, treeiter = selection.get_selected()
+      if treeiter is not None:
+          print("You selected", model[treeiter][1])
+          self.selected_host = model[treeiter][1]
 
 win = MainWindow()
 win.connect("destroy", Gtk.main_quit)
