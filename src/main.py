@@ -1,15 +1,52 @@
 import gi
 import os
+
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
+from pathlib import Path
 
-host_lists = [("host1", "192.168.1.1", 22, "root", "~/.ssh/key1"),
-                 ("host2", "192.168.1.2", 2222, "ec2-user", "~/.ssh/key2"),
-                 ("host3", "192.168.1.3", 22, "manager", "~/.ssh/key3")]
+def isNotBlank (myString):
+    if myString and myString.strip():
+        #myString is not None AND myString is not empty or blank
+        return True
+    #myString is None OR myString is empty or blank
+    return False
+
+host_lists = []
+host = ""
+hostname = ""
+port = ""
+key = ""
+user = ""
+
+# clean up .ssh/config
+parse_ssh_command = "cat /home/i2b/.ssh/config | grep -v '^#' | awk 'NF' > /home/i2b/.ssh/config-python"
+os.system(parse_ssh_command)
+
+with open("/home/i2b/.ssh/config-python") as fp:
+    for line in fp:
+        if line.startswith("Host"):
+          host = line.rstrip().lstrip().split(" ")[1]
+        if line.startswith("  HostName"):
+          hostname = line.rstrip().lstrip().split(" ")[1]
+        if line.startswith("  Port"):
+          port = line.rstrip().lstrip().split(" ")[1]
+        if line.startswith("  IdentityFile"):
+          key = line.rstrip().lstrip().split(" ")[1].replace("~",str(Path.home()))
+        if line.startswith("  User"):
+          user = line.rstrip().lstrip().split(" ")[1]
+
+        if isNotBlank(host) and isNotBlank(hostname) and isNotBlank(port) and isNotBlank(key) and isNotBlank(user):
+          host_lists.append((host,hostname,int(port),user,key))
+          host = ""
+          hostname = ""
+          port = ""
+          key = ""
+          user = ""
 
 class MainWindow(Gtk.Window):
 
-    selected_host = "none"
+    selected_host = ["none", "none", "none", "none", "none"]
 
     def __init__(self):
         Gtk.Window.__init__(self, title="RemoteHelper")
@@ -61,45 +98,46 @@ class MainWindow(Gtk.Window):
 
         #creating the treeview, making it use the filter as a model, and adding the columns
         self.treeview = Gtk.TreeView.new_with_model(self.host_filter)
+
         for i, column_title in enumerate(["Host", "IP", "Port", "UserName", "Key Path"]):
             renderer = Gtk.CellRendererText()
             column = Gtk.TreeViewColumn(column_title, renderer, text=i)
             self.treeview.append_column(column)
 
-        #setting up the layout, putting the treeview in a scrollwindow, and the buttons in a row
-        scrollable_treelist = Gtk.ScrolledWindow()
-        scrollable_treelist.set_vexpand(True)
-        scrollable_treelist.add(self.treeview)
-
         select = self.treeview.get_selection()
         select.connect("changed", self.on_tree_selection_changed)
-
-        vbox.pack_start(scrollable_treelist, True, True, 0)
+        vbox.pack_start(self.treeview, True, True, 0)
 
         listbox.add(row)
 
         self.show_all()
 
     def host_filter_func(self, model, iter, data):
-        """Tests if the language in the row is the one in the filter"""
         if self.current_filter_host is None or self.current_filter_host == "None":
             return True
         else:
             return model[iter][0] == self.current_filter_host
           
     def on_buttonSSH_clicked(self, widget):
-      os.system("/usr/bin/gnome-terminal -- ssh -p 22 -i ~/.ssh/key user@192.168.1.1")
+      ssh_command = "/usr/bin/gnome-terminal --tab -- ssh -p {} -i " + self.selected_host[4] + " " + self.selected_host[3] + "@" + self.selected_host[1]
+      os.system(ssh_command.format(self.selected_host[2]))
 
     def on_buttonSFTP_clicked(self, widget):
-      print(self.selected_host)
+      if os.path.exists("/home/i2b/.ssh/filezilla"):
+        os.remove("/home/i2b/.ssh/filezilla")
+      os.symlink(self.selected_host[4], "/home/i2b/.ssh/filezilla")
+      sftp_command = "/usr/bin/filezilla sftp://" + self.selected_host[3] + ":" + self.selected_host[4] + "@" + self.selected_host[1] + ":{} &"
+      os.system(sftp_command.format(self.selected_host[2]))
 
-    # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html
     def on_tree_selection_changed(self, selection):
       model, treeiter = selection.get_selected()
       if treeiter is not None:
-          print("You selected", model[treeiter][1])
-          self.selected_host = model[treeiter][1]
-
+          self.selected_host[0] = model[treeiter][0]
+          self.selected_host[1] = model[treeiter][1]
+          self.selected_host[2] = model[treeiter][2]
+          self.selected_host[3] = model[treeiter][3]
+          self.selected_host[4] = model[treeiter][4]
+        
 win = MainWindow()
 win.connect("destroy", Gtk.main_quit)
 win.show_all()
