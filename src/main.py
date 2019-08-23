@@ -26,6 +26,11 @@ os.system(parse_ssh_command)
 with open("/home/i2b/.ssh/config-python") as fp:
     for line in fp:
         if line.startswith("Host"):
+          host = ""
+          hostname = ""
+          port = ""
+          key = ""
+          user = ""          
           host = line.rstrip().lstrip().split(" ")[1]
         if line.startswith("  HostName"):
           hostname = line.rstrip().lstrip().split(" ")[1]
