@@ -6,4 +6,4 @@ Type=Application
 Terminal=false
 Exec=python3 /home/i2b/Work/alchandia-remotehelper/src/main.py
 Name=RemoteHelper
-#Icon=/path/to/icon
+Icon=/home/i2b/Work/alchandia-remotehelper/icon.png

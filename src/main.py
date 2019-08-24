@@ -56,9 +56,10 @@ class MainWindow(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="RemoteHelper")
         self.set_border_width(10)
-
+        
         box_outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.add(box_outer)
+        self.set_icon_from_file('/home/i2b/Work/alchandia-remotehelper/icon.png')
 
         # Header
         listbox = Gtk.ListBox()
