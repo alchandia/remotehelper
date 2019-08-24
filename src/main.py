@@ -72,13 +72,15 @@ class MainWindow(Gtk.Window):
         vbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         hbox.pack_start(vbox, True, True, 0)
 
-        label = Gtk.Label("hostX")
+        entrySearch = Gtk.Entry()
+        entrySearch.set_placeholder_text("Type to filter by host...")
+        entrySearch.connect("changed", self.on_entrySearch_changed)
         buttonSSH = Gtk.Button(label="SSH")
         buttonSSH.connect("clicked", self.on_buttonSSH_clicked)
         buttonSFTP = Gtk.Button(label="SFTP")
         buttonSFTP.connect("clicked", self.on_buttonSFTP_clicked)
 
-        vbox.pack_start(label, True, True, 0)
+        vbox.pack_start(entrySearch, True, True, 0)
         vbox.pack_start(buttonSSH, True, True, 0)
         vbox.pack_start(buttonSFTP, True, True, 0)
 
@@ -119,10 +121,11 @@ class MainWindow(Gtk.Window):
         self.show_all()
 
     def host_filter_func(self, model, iter, data):
-        if self.current_filter_host is None or self.current_filter_host == "None":
+        if self.current_filter_host is None or self.current_filter_host == "None" or self.current_filter_host == "":
             return True
         else:
-            return model[iter][0] == self.current_filter_host
+            value = model.get_value(iter, 0).lower()
+            return True if self.current_filter_host in value else False
           
     def on_buttonSSH_clicked(self, widget):
       ssh_command = "/usr/bin/gnome-terminal --tab -- ssh -p {} -i " + self.selected_host[4] + " " + self.selected_host[3] + "@" + self.selected_host[1]
@@ -143,7 +146,11 @@ class MainWindow(Gtk.Window):
           self.selected_host[2] = model[treeiter][2]
           self.selected_host[3] = model[treeiter][3]
           self.selected_host[4] = model[treeiter][4]
-        
+
+    def on_entrySearch_changed(self, widget):
+      self.current_filter_host = widget.get_text()
+      self.host_filter.refilter()
+
 win = MainWindow()
 win.connect("destroy", Gtk.main_quit)
 win.show_all()
