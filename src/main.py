@@ -13,8 +13,8 @@ def isNotBlank (myString):
     return False
 
 host_lists = []
-host = ""
 hostname = ""
+ip = ""
 port = ""
 key = ""
 user = ""
@@ -26,14 +26,14 @@ os.system(parse_ssh_command)
 with open("/home/i2b/.ssh/config-python") as fp:
     for line in fp:
         if line.startswith("Host"):
-          host = ""
           hostname = ""
+          ip = ""
           port = ""
           key = ""
-          user = ""          
-          host = line.rstrip().lstrip().split(" ")[1]
-        if line.startswith("  HostName"):
+          user = ""      
           hostname = line.rstrip().lstrip().split(" ")[1]
+        if line.startswith("  HostName"):
+          ip = line.rstrip().lstrip().split(" ")[1]
         if line.startswith("  Port"):
           port = line.rstrip().lstrip().split(" ")[1]
         if line.startswith("  IdentityFile"):
@@ -41,10 +41,10 @@ with open("/home/i2b/.ssh/config-python") as fp:
         if line.startswith("  User"):
           user = line.rstrip().lstrip().split(" ")[1]
 
-        if isNotBlank(host) and isNotBlank(hostname) and isNotBlank(port) and isNotBlank(key) and isNotBlank(user):
-          host_lists.append((host,hostname,int(port),user,key))
-          host = ""
+        if isNotBlank(hostname) and isNotBlank(ip) and isNotBlank(port) and isNotBlank(key) and isNotBlank(user):
+          host_lists.append((hostname,ip,int(port),user,key))
           hostname = ""
+          ip = ""
           port = ""
           key = ""
           user = ""
@@ -73,7 +73,7 @@ class MainWindow(Gtk.Window):
         hbox.pack_start(vbox, True, True, 0)
 
         entrySearch = Gtk.Entry()
-        entrySearch.set_placeholder_text("Type to filter by host...")
+        entrySearch.set_placeholder_text("Type to filter by hostname...")
         entrySearch.connect("changed", self.on_entrySearch_changed)
         buttonSSH = Gtk.Button(label="SSH")
         buttonSSH.connect("clicked", self.on_buttonSSH_clicked)
@@ -107,7 +107,7 @@ class MainWindow(Gtk.Window):
         #creating the treeview, making it use the filter as a model, and adding the columns
         self.treeview = Gtk.TreeView.new_with_model(self.host_filter)
 
-        for i, column_title in enumerate(["Host", "IP", "Port", "UserName", "Key Path"]):
+        for i, column_title in enumerate(["Hostname", "IP", "Port", "UserName", "Key Path"]):
             renderer = Gtk.CellRendererText()
             column = Gtk.TreeViewColumn(column_title, renderer, text=i)
             self.treeview.append_column(column)
