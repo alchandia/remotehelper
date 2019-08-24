@@ -5,53 +5,41 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from pathlib import Path
 
-def isNotBlank (myString):
-    if myString and myString.strip():
-        #myString is not None AND myString is not empty or blank
-        return True
-    #myString is None OR myString is empty or blank
-    return False
-
 host_lists = []
-hostname = ""
-ip = ""
-port = ""
-key = ""
-user = ""
+current_host = ["", "", "", "", ""]
+home_user = str(Path.home())
 
-# clean up .ssh/config
-parse_ssh_command = "cat /home/i2b/.ssh/config | grep -v '^#' | awk 'NF' > /home/i2b/.ssh/config-python"
-os.system(parse_ssh_command)
+def isNotBlank (myString):
+    if myString and myString.strip():        
+        return True #myString is not None AND myString is not empty or blank
+    return False #myString is None OR myString is empty or blank
 
-with open("/home/i2b/.ssh/config-python") as fp:
-    for line in fp:
-        if line.startswith("Host"):
-          hostname = ""
-          ip = ""
-          port = ""
-          key = ""
-          user = ""      
-          hostname = line.rstrip().lstrip().split(" ")[1]
-        if line.startswith("  HostName"):
-          ip = line.rstrip().lstrip().split(" ")[1]
-        if line.startswith("  Port"):
-          port = line.rstrip().lstrip().split(" ")[1]
-        if line.startswith("  IdentityFile"):
-          key = line.rstrip().lstrip().split(" ")[1].replace("~",str(Path.home()))
-        if line.startswith("  User"):
-          user = line.rstrip().lstrip().split(" ")[1]
+def generate_host_list():
 
-        if isNotBlank(hostname) and isNotBlank(ip) and isNotBlank(port) and isNotBlank(key) and isNotBlank(user):
-          host_lists.append((hostname,ip,int(port),user,key))
-          hostname = ""
-          ip = ""
-          port = ""
-          key = ""
-          user = ""
+  # clean up and parse .ssh/config
+  parse_ssh_command = "cat " + home_user + "/.ssh/config | grep -v '^#' | awk 'NF' > " + home_user + "/.ssh/config-remotehelper"
+  os.system(parse_ssh_command)
+
+  with open(home_user + "/.ssh/config-remotehelper") as fp:
+      for line in fp:
+          if line.startswith("Host"):
+            current_host = ["", "", "", "", ""]
+            current_host[0] = line.rstrip().lstrip().split(" ")[1]
+          if line.startswith("  HostName"):
+            current_host[1] = line.rstrip().lstrip().split(" ")[1]
+          if line.startswith("  Port"):
+            current_host[2] = line.rstrip().lstrip().split(" ")[1]
+          if line.startswith("  User"):
+            current_host[3] = line.rstrip().lstrip().split(" ")[1]            
+          if line.startswith("  IdentityFile"):
+            current_host[4] = line.rstrip().lstrip().split(" ")[1].replace("~",home_user)
+
+          # Add host to list only if they have all the data need it
+          if isNotBlank(current_host[0]) and isNotBlank(current_host[1]) and isNotBlank(current_host[2]) and isNotBlank(current_host[3]) and isNotBlank(current_host[4]):
+            host_lists.append((current_host[0],current_host[1],int(current_host[2]),current_host[3],current_host[4]))
+            current_host = ["", "", "", "", ""]
 
 class MainWindow(Gtk.Window):
-
-    selected_host = ["none", "none", "none", "none", "none"]
 
     def __init__(self):
         Gtk.Window.__init__(self, title="RemoteHelper")
@@ -79,7 +67,7 @@ class MainWindow(Gtk.Window):
         buttonSSH.connect("clicked", self.on_buttonSSH_clicked)
         buttonSFTP = Gtk.Button(label="SFTP")
         buttonSFTP.connect("clicked", self.on_buttonSFTP_clicked)
-
+ 
         vbox.pack_start(entrySearch, True, True, 0)
         vbox.pack_start(buttonSSH, True, True, 0)
         vbox.pack_start(buttonSFTP, True, True, 0)
@@ -128,28 +116,32 @@ class MainWindow(Gtk.Window):
             return True if self.current_filter_host in value else False
           
     def on_buttonSSH_clicked(self, widget):
-      ssh_command = "/usr/bin/gnome-terminal --tab -- ssh -p {} -i " + self.selected_host[4] + " " + self.selected_host[3] + "@" + self.selected_host[1]
-      os.system(ssh_command.format(self.selected_host[2]))
+      ssh_command = "/usr/bin/gnome-terminal --tab -- ssh -p {} -i " + current_host[4] + " " + current_host[3] + "@" + current_host[1]
+
+      print(ssh_command)
+      os.system(ssh_command.format(current_host[2]))
 
     def on_buttonSFTP_clicked(self, widget):
-      if os.path.exists("/home/i2b/.ssh/filezilla"):
-        os.remove("/home/i2b/.ssh/filezilla")
-      os.symlink(self.selected_host[4], "/home/i2b/.ssh/filezilla")
-      sftp_command = "/usr/bin/filezilla sftp://" + self.selected_host[3] + ":" + self.selected_host[4] + "@" + self.selected_host[1] + ":{} &"
-      os.system(sftp_command.format(self.selected_host[2]))
+      if os.path.exists(home_user + "/.ssh/filezilla"):
+        os.remove(home_user + "/.ssh/filezilla")
+      os.symlink(current_host[4], home_user + "/.ssh/filezilla")
+      sftp_command = "/usr/bin/filezilla sftp://" + current_host[3] + ":@" + current_host[1] + ":{} &"
+      os.system(sftp_command.format(current_host[2]))
 
     def on_tree_selection_changed(self, selection):
       model, treeiter = selection.get_selected()
       if treeiter is not None:
-          self.selected_host[0] = model[treeiter][0]
-          self.selected_host[1] = model[treeiter][1]
-          self.selected_host[2] = model[treeiter][2]
-          self.selected_host[3] = model[treeiter][3]
-          self.selected_host[4] = model[treeiter][4]
+          current_host[0] = model[treeiter][0]
+          current_host[1] = model[treeiter][1]
+          current_host[2] = model[treeiter][2]
+          current_host[3] = model[treeiter][3]
+          current_host[4] = model[treeiter][4]
 
     def on_entrySearch_changed(self, widget):
       self.current_filter_host = widget.get_text()
       self.host_filter.refilter()
+
+generate_host_list()
 
 win = MainWindow()
 win.connect("destroy", Gtk.main_quit)
