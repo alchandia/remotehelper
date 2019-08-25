@@ -36,7 +36,9 @@ def generate_host_list():
 
           # Add host to list only if they have all the data need it
           if isNotBlank(current_host[0]) and isNotBlank(current_host[1]) and isNotBlank(current_host[2]) and isNotBlank(current_host[3]) and isNotBlank(current_host[4]):
-            host_lists.append((current_host[0],current_host[1],int(current_host[2]),current_host[3],current_host[4]))
+            # ignore duplicate host
+            if (current_host[0],current_host[1],int(current_host[2]),current_host[3],current_host[4]) not in host_lists:
+              host_lists.append((current_host[0],current_host[1],int(current_host[2]),current_host[3],current_host[4]))
             current_host = ["", "", "", "", ""]
 
 class MainWindow(Gtk.Window):
