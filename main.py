@@ -8,6 +8,7 @@ from pathlib import Path
 host_lists = []
 current_host = ["", "", "", "", ""]
 home_user = str(Path.home())
+home_app = os.path.dirname(os.path.realpath(__file__))
 
 def isNotBlank (myString):
     if myString and myString.strip():        
@@ -49,7 +50,7 @@ class MainWindow(Gtk.Window):
         
         box_outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.add(box_outer)
-        self.set_icon_from_file('/home/i2b/Work/alchandia-remotehelper/icon.png')
+        self.set_icon_from_file(home_app + '/icon.png')
 
         # Header
         listbox = Gtk.ListBox()
@@ -118,8 +119,7 @@ class MainWindow(Gtk.Window):
             return True if self.current_filter_host in value else False
           
     def on_buttonSSH_clicked(self, widget):
-      ssh_command = "/usr/bin/gnome-terminal --tab -- /home/i2b/Work/alchandia-remotehelper/src/shell.sh " + current_host[0] + " " + current_host[1] + " {} " + current_host[3] + " " + current_host[4]
-      print(ssh_command)
+      ssh_command = "/usr/bin/gnome-terminal --tab -- " + home_app + "/shell.sh " + current_host[0] + " " + current_host[1] + " {} " + current_host[3] + " " + current_host[4]
       os.system(ssh_command.format(current_host[2]))
 
     def on_buttonSFTP_clicked(self, widget):
