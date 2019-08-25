@@ -118,8 +118,7 @@ class MainWindow(Gtk.Window):
             return True if self.current_filter_host in value else False
           
     def on_buttonSSH_clicked(self, widget):
-      ssh_command = "/usr/bin/gnome-terminal --tab -- ssh -p {} -i " + current_host[4] + " " + current_host[3] + "@" + current_host[1]
-
+      ssh_command = "/usr/bin/gnome-terminal --tab -- /home/i2b/Work/alchandia-remotehelper/src/shell.sh " + current_host[0] + " " + current_host[1] + " {} " + current_host[3] + " " + current_host[4]
       print(ssh_command)
       os.system(ssh_command.format(current_host[2]))
 
