@@ -119,7 +119,7 @@ class MainWindow(Gtk.Window):
             return True if self.current_filter_host in value else False
           
     def on_buttonSSH_clicked(self, widget):
-      ssh_command = "/usr/bin/gnome-terminal --tab -- " + home_app + "/shell.sh " + current_host[0] + " " + current_host[1] + " {} " + current_host[3] + " " + current_host[4]
+      ssh_command = "/usr/bin/gnome-terminal --tab -- " + home_app + "/ssh_connection.sh " + current_host[0] + " " + current_host[1] + " {} " + current_host[3] + " " + current_host[4]
       os.system(ssh_command.format(current_host[2]))
 
     def on_buttonSFTP_clicked(self, widget):

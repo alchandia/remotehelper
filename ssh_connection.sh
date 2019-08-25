@@ -14,4 +14,4 @@ SETTP='MY_PROMPT="$XUSER@$XHOSTNAME\$ "'
 SETTP="$SETTP;"'MY_TITLE="\[\e]0;$XUSER@$XHOSTNAME\a\]"'
 SETTP="$SETTP;"'PS1="$MY_TITLE$MY_PROMPT"'
 
-/usr/bin/ssh -A -i $XKEY -p $XPORT -t $XUSER@$XIP "export XUSER=$XUSER; export XHOSTNAME=$XHOSTNAME; export PROMPT_COMMAND='eval '\\''$SETTP'\\'; bash --login"
+/usr/bin/ssh -i $XKEY -p $XPORT -t $XUSER@$XIP "export XUSER=$XUSER; export XHOSTNAME=$XHOSTNAME; export PROMPT_COMMAND='eval '\\''$SETTP'\\'; bash --login"
