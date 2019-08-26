@@ -49,42 +49,23 @@ class MainWindow(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="RemoteHelper")
         self.set_border_width(10)
-        
-        box_outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        self.add(box_outer)
         self.set_icon_from_file(home_app + '/icon.png')
 
-        # Header
-        listbox = Gtk.ListBox()
-        listbox.set_selection_mode(Gtk.SelectionMode.NONE)
-        box_outer.pack_start(listbox, True, True, 0)
-
-        row = Gtk.ListBoxRow()
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=50)
-        row.add(hbox)
-        vbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        hbox.pack_start(vbox, True, True, 0)
+        #Setting up the self.grid in which the elements are to be positionned
+        self.grid = Gtk.Grid()
+        self.grid.set_column_homogeneous(True)
+        self.grid.set_row_homogeneous(True)
+        self.add(self.grid)
 
         entrySearch = Gtk.Entry()
         entrySearch.set_placeholder_text("Type to filter by hostname...")
         entrySearch.connect("changed", self.on_entrySearch_changed)
+
         buttonSSH = Gtk.Button(label="SSH")
         buttonSSH.connect("clicked", self.on_buttonSSH_clicked)
+
         buttonSFTP = Gtk.Button(label="SFTP")
         buttonSFTP.connect("clicked", self.on_buttonSFTP_clicked)
- 
-        vbox.pack_start(entrySearch, True, True, 0)
-        vbox.pack_start(buttonSSH, True, True, 0)
-        vbox.pack_start(buttonSFTP, True, True, 0)
-
-        listbox.add(row)
-
-        # TreeView
-        row = Gtk.ListBoxRow()
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=50)
-        row.add(hbox)
-        vbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        hbox.pack_start(vbox, True, True, 0)
 
         #Creating the ListStore model
         self.host_listsstore = Gtk.ListStore(str, str, int, str, str)
@@ -107,10 +88,17 @@ class MainWindow(Gtk.Window):
 
         select = self.treeview.get_selection()
         select.connect("changed", self.on_tree_selection_changed)
-        vbox.pack_start(self.treeview, True, True, 0)
 
-        listbox.add(row)
+        #setting up the layout, putting the treeview in a scrollwindow, and the buttons in a row
+        self.scrollable_treelist = Gtk.ScrolledWindow()
+        self.scrollable_treelist.set_vexpand(True)
+        self.grid.attach(self.scrollable_treelist, 0, 0, 8, 10)
 
+        self.grid.attach_next_to(entrySearch, self.scrollable_treelist, Gtk.PositionType.TOP, 1, 1)
+        self.grid.attach_next_to(buttonSSH, entrySearch, Gtk.PositionType.RIGHT, 1, 1)
+        self.grid.attach_next_to(buttonSFTP, buttonSSH, Gtk.PositionType.RIGHT, 1, 1)
+
+        self.scrollable_treelist.add(self.treeview)
         self.show_all()
 
     def host_filter_func(self, model, iter, data):
