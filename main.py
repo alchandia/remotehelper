@@ -110,7 +110,7 @@ class MainWindow(Gtk.Window):
           
     def on_buttonSSH_clicked(self, widget):
       #ssh_command = "/usr/bin/gnome-terminal --tab -- " + home_app + "/ssh_connection.sh " + current_host[0] + " " + current_host[1] + " {} " + current_host[3] + " " + current_host[4]
-      ssh_command = "/usr/bin/xfce4-terminal --tab -T " + current_host[3] + "@" + current_host[0] + " -e 'ssh -p {} -i " + current_host[4] + " " + current_host[3] + "@" + current_host[1] + "' &"
+      ssh_command = "/usr/bin/xfce4-terminal --tab -T " + current_host[3] + "@" + current_host[0] + " -e 'ssh -X -o StrictHostKeyChecking=no -p {} -i " + current_host[4] + " " + current_host[3] + "@" + current_host[1] + "' &"
       os.system(ssh_command.format(current_host[2]))
 
     def on_buttonSFTP_clicked(self, widget):
