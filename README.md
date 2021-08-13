@@ -1,6 +1,6 @@
 # Overview
 
-I Work with Ansible and my file `./ssh/config` has the connection data to all the serves that I manage, this tool reads
+I Work with Ansible and my `./ssh/config` file has the connection data to all the serves that I manage, this tool reads
 that file and show a grid with all the hosts and give the possibility to stablish a SSH session using xfce4-terminal and
 a SFTP session using Filezilla by clicking in a button.
 
@@ -26,10 +26,10 @@ Every time you select other host and click the button `SFTP` this symlink is upd
 
 ![image](remote_helper.png)
 
-# To-Do
+# TODO
 
 - Allow resizing of the window
-- Refresh information from `./ssh/config` using a button 
+- Refresh information from `./ssh/config` using a button
 
 # Links
 
