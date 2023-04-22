@@ -1,3 +1,7 @@
 *.bak
 __pycache__
 *.iml
+build
+dist
+venv
+RemoteHelper.ini

@@ -1,140 +1,155 @@
-#!/usr/bin/python3
-
-import gi
+import tkinter as tk
+from tkinter import ttk
 import os
+from utils import Utils
+from options import OptionsWindow
+from paramiko import SSHConfig
 
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
-from pathlib import Path
+basedir = os.path.dirname(__file__)
 
-host_lists = []
-current_host = ["", "", "", "", ""]
-home_user = str(Path.home())
-home_app = os.path.dirname(os.path.realpath(__file__))
+# Set icon on taskbar
+try:
+    from ctypes import windll  # Only exists on Windows.
+    myappid = "i2btech.remotehelper.0.0"
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except ImportError:
+    pass
 
-def isNotBlank (myString):
-    if myString and myString.strip():        
-        return True #myString is not None AND myString is not empty or blank
-    return False #myString is None OR myString is empty or blank
+class MainWindow(tk.Tk):
 
-def generate_host_list():
+    def populate_treeview(self):
+        openssh_config = Utils.option_get("general", "path_openssh_config", main_window.label_messages)
+        ssh_config = SSHConfig()
+        user_config_file = os.path.expanduser(openssh_config)
 
-  # clean up and parse .ssh/config
-  parse_ssh_command = "cat " + home_user + "/.ssh/config | grep -v '^#' | awk 'NF' > " + home_user + "/.ssh/config-remotehelper"
-  os.system(parse_ssh_command)
+        if not os.path.exists(user_config_file):
+            self.update_label_messages("Error!!!: ssh config not found")
+            return
 
-  with open(home_user + "/.ssh/config-remotehelper") as fp:
-      for line in fp:
-          if line.startswith("Host"):
-            current_host = ["", "", "", "", ""]
-            current_host[0] = line.rstrip().lstrip().split(" ")[1]
-          if line.startswith("  HostName"):
-            current_host[1] = line.rstrip().lstrip().split(" ")[1]
-          if line.startswith("  Port"):
-            current_host[2] = line.rstrip().lstrip().split(" ")[1]
-          if line.startswith("  User"):
-            current_host[3] = line.rstrip().lstrip().split(" ")[1]            
-          if line.startswith("  IdentityFile"):
-            current_host[4] = line.rstrip().lstrip().split(" ")[1].replace("~",home_user)
+        try:
+            # Clean treeview
+            self.tree.delete(*self.tree.get_children())
 
-          # Add host to list only if they have all the data need it
-          if isNotBlank(current_host[0]) and isNotBlank(current_host[1]) and isNotBlank(current_host[2]) and isNotBlank(current_host[3]) and isNotBlank(current_host[4]):
-            # ignore duplicate host
-            if (current_host[0],current_host[1],int(current_host[2]),current_host[3],current_host[4]) not in host_lists:
-              host_lists.append((current_host[0],current_host[1],int(current_host[2]),current_host[3],current_host[4]))
-            current_host = ["", "", "", "", ""]
+            with open(user_config_file) as f:
+                ssh_config.parse(f)
 
-class MainWindow(Gtk.Window):
+            # Insert the data in Treeview widget    
+            for host in ssh_config.get_hostnames():
+                conf = ssh_config.lookup(host)
 
-    def __init__(self):
-        Gtk.Window.__init__(self, title="RemoteHelper")
-        self.set_border_width(10)
-        self.set_icon_from_file(home_app + '/icon.png')
+                # exclude all entries that do not have user and port, we assume they are not machines
+                if conf.get('port') and conf.get('user'):
+                    key_name = os.path.basename(conf.get('identityfile')[0]) + ".ppk"
+                    key_location = os.path.dirname(openssh_config)
+                    key_ppk_path = key_location + "/" + key_name
+                    key_pem_path = conf.get('identityfile')[0]
+                    self.tree.insert('', 'end', text="1", values=(host, conf.get('hostname'), conf.get('port'), conf.get('user'), key_ppk_path, key_pem_path))
+            self.update_label_messages("")
 
-        #Setting up the self.grid in which the elements are to be positionned
-        self.grid = Gtk.Grid()
-        self.grid.set_column_homogeneous(True)
-        self.grid.set_row_homogeneous(True)
-        self.add(self.grid)
+        except Exception as e:
+            self.update_label_messages("Error parsing the config file: " + openssh_config + ". Check the format")
 
-        entrySearch = Gtk.Entry()
-        entrySearch.set_placeholder_text("Type to filter by hostname...")
-        entrySearch.connect("changed", self.on_entrySearch_changed)
+    def open_terminal(self):
+        curItem = self.tree.focus()
+        if curItem:
+            details = self.tree.item(curItem)
+            hostname = details.get("values")[0]
+            ip = details.get("values")[1]
+            port = details.get("values")[2]
+            user_name = details.get("values")[3]
+            key = details.get("values")[5]
 
-        buttonSSH = Gtk.Button(label="SSH")
-        buttonSSH.connect("clicked", self.on_buttonSSH_clicked)
-
-        buttonSFTP = Gtk.Button(label="SFTP")
-        buttonSFTP.connect("clicked", self.on_buttonSFTP_clicked)
-
-        #Creating the ListStore model
-        self.host_listsstore = Gtk.ListStore(str, str, int, str, str)
-        for host_ref in host_lists:
-            self.host_listsstore.append(list(host_ref))
-        self.current_filter_host = None
-
-        #Creating the filter, feeding it with the liststore model
-        self.host_filter = self.host_listsstore.filter_new()
-        #setting the filter function, note that we're not using the
-        self.host_filter.set_visible_func(self.host_filter_func)
-
-        #creating the treeview, making it use the filter as a model, and adding the columns
-        self.treeview = Gtk.TreeView.new_with_model(self.host_filter)
-
-        for i, column_title in enumerate(["Hostname", "IP", "Port", "UserName", "Key Path"]):
-            renderer = Gtk.CellRendererText()
-            column = Gtk.TreeViewColumn(column_title, renderer, text=i)
-            self.treeview.append_column(column)
-
-        select = self.treeview.get_selection()
-        select.connect("changed", self.on_tree_selection_changed)
-
-        #setting up the layout, putting the treeview in a scrollwindow, and the buttons in a row
-        self.scrollable_treelist = Gtk.ScrolledWindow()
-        self.scrollable_treelist.set_vexpand(True)
-        self.grid.attach(self.scrollable_treelist, 0, 0, 8, 10)
-
-        self.grid.attach_next_to(entrySearch, self.scrollable_treelist, Gtk.PositionType.TOP, 1, 1)
-        self.grid.attach_next_to(buttonSSH, entrySearch, Gtk.PositionType.RIGHT, 1, 1)
-        self.grid.attach_next_to(buttonSFTP, buttonSSH, Gtk.PositionType.RIGHT, 1, 1)
-
-        self.scrollable_treelist.add(self.treeview)
-        self.show_all()
-
-    def host_filter_func(self, model, iter, data):
-        if self.current_filter_host is None or self.current_filter_host == "None" or self.current_filter_host == "":
-            return True
+            Utils.open_terminal(self.update_label_messages, hostname, ip, port, user_name, key)
         else:
-            value = model.get_value(iter, 0).lower()
-            return True if self.current_filter_host in value else False
-          
-    def on_buttonSSH_clicked(self, widget):
-      ssh_command = "/usr/bin/xfce4-terminal --tab -T " + current_host[3] + "@" + current_host[0] + " -e 'ssh -X -o StrictHostKeyChecking=no -p {} -i " + current_host[4] + " " + current_host[3] + "@" + current_host[1] + "' &"
-      os.system(ssh_command.format(current_host[2]))
+            self.update_label_messages("Error!!!: Please select a host")
 
-    def on_buttonSFTP_clicked(self, widget):
-      if os.path.exists(home_user + "/.ssh/filezilla"):
-        os.remove(home_user + "/.ssh/filezilla")
-      os.symlink(current_host[4], home_user + "/.ssh/filezilla")
-      sftp_command = "/usr/bin/filezilla sftp://" + current_host[3] + ":@" + current_host[1] + ":{} &"
-      os.system(sftp_command.format(current_host[2]))
+    def open_winscp(self):
+        curItem = self.tree.focus()
+        if curItem: 
+            details = self.tree.item(curItem)
+            ip = details.get("values")[1]
+            port = details.get("values")[2]
+            user_name = details.get("values")[3]
+            key = details.get("values")[4]
 
-    def on_tree_selection_changed(self, selection):
-      model, treeiter = selection.get_selected()
-      if treeiter is not None:
-          current_host[0] = model[treeiter][0]
-          current_host[1] = model[treeiter][1]
-          current_host[2] = model[treeiter][2]
-          current_host[3] = model[treeiter][3]
-          current_host[4] = model[treeiter][4]
+            Utils.open_winscp(self.update_label_messages, ip, port, user_name, key)
+        else:
+            self.update_label_messages("Error!!!: Please select a host")
+        
+    def open_window_options(self):
+        OptionsWindow(self, self.populate_treeview)
 
-    def on_entrySearch_changed(self, widget):
-      self.current_filter_host = widget.get_text()
-      self.host_filter.refilter()
+    def update_label_messages(self, message):
+        self.label_messages.config(text=message)
+                                   
+    def __init__(self):
+        super().__init__()
+        self.title('Remote Helper')
 
-generate_host_list()
+        # Add menu bar
+        self.menubar = tk.Menu(self)
+        self.config(menu=self.menubar)
+        self.file_menu = tk.Menu(self.menubar)
+        # add menu item
+        self.file_menu.add_command(
+            label='Options',
+            command=self.open_window_options
+        )
+        self.file_menu.add_separator()
+        # add menu item
+        self.file_menu.add_command(
+            label='Exit',
+            command=self.destroy
+        )
+        # add the Options menu to the menubar
+        self.menubar.add_cascade(
+            label="File",
+            menu=self.file_menu
+        )
 
-win = MainWindow()
-win.connect("destroy", Gtk.main_quit)
-win.show_all()
-Gtk.main()
+        # Set the size of the tkinter window
+        self.s = ttk.Style()
+
+        # Layout
+        # Create top and bottom frames
+        self.top_frame = ttk.Frame(self, width=200,  height=400)
+        self.top_frame.pack(side='top',  fill='both',  padx=10,  pady=5)
+        self.top_bar = ttk.Frame(self.top_frame,  width=180,  height=185)
+        self.top_bar.grid(row=2,  column=0,  padx=5,  pady=5)
+
+        # Add a Treeview widget
+        columns = ('hostname', 'ip', 'port', 'user_name', 'key_ppk', 'key_pem')
+        columns_to_display = ('hostname', 'ip', 'port', 'user_name', 'key_ppk')
+        self.tree = ttk.Treeview(self, column=columns, displaycolumns=columns_to_display, show='headings', height=5, selectmode=tk.BROWSE)
+        self.tree.heading('hostname', text="Hostname")
+        self.tree.column("hostname", minwidth=0, width=200, stretch=tk.NO)
+        self.tree.heading('ip', text="IP")
+        self.tree.column("ip", minwidth=0, width=100, stretch=tk.NO)
+        self.tree.heading('port', text="Port")
+        self.tree.column("port", minwidth=0, width=40, stretch=tk.NO)
+        self.tree.heading('user_name', text="User Name")
+        self.tree.column("user_name", minwidth=0, width=80, stretch=tk.NO)
+        self.tree.heading('key_ppk', text="Private Key")
+        self.tree.column("key_ppk", minwidth=0, width=500, stretch=tk.NO)
+        self.tree.heading('key_pem', text="Private Key")
+        self.tree.column("key_pem", minwidth=0, width=500, stretch=tk.NO)
+        self.tree.pack()
+
+        # Create a Label widget
+        self.label_messages=ttk.Label(self, text="")
+        self.label_messages.pack()
+
+        ttk.Entry(self.top_bar).grid(row=1,  column=0,  padx=5,  pady=5)
+        ttk.Button(self.top_bar,  text="SSH", width=25, command=self.open_terminal).grid(row=1,  column=1,  padx=5,  pady=5)
+        ttk.Button(self.top_bar,  text="WinSCP", width=25, command=self.open_winscp).grid(row=1,  column=2,  padx=5,  pady=5)
+
+        # Set icon on taskbar
+        self.iconbitmap(os.path.join(basedir, "icon.ico"))
+
+if __name__ == '__main__':
+    main_window = MainWindow()
+
+    # Populate treeview
+    main_window.populate_treeview()
+
+    main_window.mainloop()
