@@ -85,11 +85,13 @@ class MainWindow(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title('Remote Helper')
+        Utils.center_window(self)
 
         # Add menu bar
         self.menubar = tk.Menu(self)
         self.config(menu=self.menubar)
         self.file_menu = tk.Menu(self.menubar)
+
         # add menu item
         self.file_menu.add_command(
             label='Options',
@@ -101,6 +103,7 @@ class MainWindow(tk.Tk):
             label='Exit',
             command=self.destroy
         )
+        
         # add the Options menu to the menubar
         self.menubar.add_cascade(
             label="File",

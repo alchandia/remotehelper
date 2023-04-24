@@ -89,3 +89,14 @@ class Utils():
             print(e)
 
         return distros
+    
+    def center_window(self):
+        # Gets the requested values of the height and widht.
+        windowWidth = self.winfo_reqwidth()
+        windowHeight = self.winfo_reqheight()
+        print("Width",windowWidth,"Height",windowHeight)
+        # Gets both half the screen width/height and window width/height
+        positionRight = int(self.winfo_screenwidth()/3 - windowWidth/2)
+        positionDown = int(self.winfo_screenheight()/3 - windowHeight/2)
+        # Positions the window in the center of the page.
+        self.geometry("+{}+{}".format(positionRight, positionDown))

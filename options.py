@@ -28,6 +28,7 @@ class OptionsWindow(tk.Toplevel):
         self.m_populate_treeview = populate_treeview
         
         self.title = "Options"
+        Utils.center_window(self)
         self.focus()
 
         self.top_frame = ttk.Frame(self)
