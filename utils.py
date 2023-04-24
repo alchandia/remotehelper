@@ -3,7 +3,7 @@ import os
 import subprocess
 import configparser
 
-configfile_name = "RemoteHelper.ini"
+configfile_name = os.getenv('HOMEDRIVE') + os.getenv('HOMEPATH') + "\RemoteHelper.ini"
 
 class Utils():
 
@@ -94,7 +94,6 @@ class Utils():
         # Gets the requested values of the height and widht.
         windowWidth = self.winfo_reqwidth()
         windowHeight = self.winfo_reqheight()
-        print("Width",windowWidth,"Height",windowHeight)
         # Gets both half the screen width/height and window width/height
         positionRight = int(self.winfo_screenwidth()/3 - windowWidth/2)
         positionDown = int(self.winfo_screenheight()/3 - windowHeight/2)
