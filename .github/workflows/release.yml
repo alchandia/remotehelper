@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Build exe
-        run: pyinstaller -n RemoteHelper --icon=icon.ico --add-data="icon.ico;." --onefile -w main.py
+        run: pyinstaller -n RemoteHelper --icon=icon.ico --add-data "icon.ico;." --onefile -w main.py
 
       - name: Create Release
         id: create_release
