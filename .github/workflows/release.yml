@@ -1,7 +1,10 @@
 ---
 name: Release and Deploy
-on: # yamllint disable-line rule:truthy
-  workflow_dispatch:
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
 
 jobs:
   releaseanddeploy:
@@ -9,13 +12,9 @@ jobs:
     if: github.repository == 'alchandia/remotehelper'
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Get current version
-        id: cversion
-        #run: echo "::set-output name=version::$(grep ^version galaxy.yml | awk '{ print $2 }')"
-        run: echo "0.1.0"
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -33,28 +32,8 @@ jobs:
       - name: Build exe
         run: pyinstaller RemoteHelper.spec
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release and upload
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.cversion.outputs.version }}
-          release_name: Release v${{ steps.cversion.outputs.version }}
-          body: |
-            # Remote helper
-
-            ...
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/RemoteHelper.exe
-          asset_name: RemoteHelper.exe
-          asset_content_type: application/octet-stream
+          files: |
+            dist/RemoteHelper.exe
