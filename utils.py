@@ -22,6 +22,8 @@ class Utils():
                 "-d",
                 wsl_distro,
                 "ssh",
+                "-o",
+                "StrictHostKeyChecking=no",
                 "-i",
                 key,
                 "-p",
